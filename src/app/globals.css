@@ -3,18 +3,22 @@
 @theme {
   --color-navy: #03102b;
   --color-navy-soft: #1c2a47;
-  --color-cloud: #f4f6f9;
-  --color-line: #e6e9ef;
+
+  /* Dynamate-style warm palette */
+  --color-cream: #f4efe6;
+  --color-paper: #fffdf8;
+  --color-line: #e7ded0;
+  --color-accent: #f1062c;
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 html {
-  background: var(--color-cloud);
+  background: var(--color-cream);
 }
 
 body {
-  background: var(--color-cloud);
-  color: #111827;
+  background: var(--color-cream);
+  color: #16223b;
 }
