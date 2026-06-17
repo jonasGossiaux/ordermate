@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { getRecentGroupOrders } from "@/db/queries";
 import { getMenu } from "@/data/menus";
+import { Deadline } from "@/components/Deadline";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDateNL } from "@/lib/format";
 
@@ -55,6 +56,14 @@ export default async function HomePage() {
                       <div className="mt-1 text-xs text-slate-400">
                         {formatDateNL(order.createdAt)}
                       </div>
+                      {order.deadline ? (
+                        <div className="mt-1 text-xs">
+                          <Deadline
+                            deadlineMs={order.deadline.getTime()}
+                            compact
+                          />
+                        </div>
+                      ) : null}
                     </div>
                     <StatusBadge status={order.status} />
                   </div>

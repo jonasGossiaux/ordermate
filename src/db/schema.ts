@@ -6,8 +6,11 @@ export const groupOrders = pgTable("group_orders", {
   name: text("name").notNull(),
   // Verwijst naar een menu-id uit src/data/menus.ts (bv. "hey-tom-broodjes").
   menuId: text("menu_id").notNull(),
-  // "open" of "closed".
+  // "open" of "closed". "closed" = vergrendeld door de beheerder: geen nieuwe broodjes.
   status: text("status").notNull().default("open"),
+  // Optionele deadline (puur visueel). De beheerder bepaalt met de vergrendelknop
+  // wanneer er echt niets meer toegevoegd kan worden.
+  deadline: timestamp("deadline", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

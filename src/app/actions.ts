@@ -8,6 +8,12 @@ import { customAlphabet } from "nanoid";
 import { getDb } from "@/db";
 import { groupOrders, orderItems } from "@/db/schema";
 import { getMenu, getMenuItem } from "@/data/menus";
+import {
+  createSession,
+  destroySession,
+  isAdmin,
+  verifyCredentials,
+} from "@/lib/auth";
 
 // Leesbare ids zonder dubbelzinnige tekens (geen 0/o/1/l).
 const alphabet = "23456789abcdefghijkmnopqrstuvwxyz";
@@ -24,6 +30,33 @@ export type FormState = {
 function text(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+// ── Authenticatie (beheerder) ────────────────────────────────────────────────
+
+export async function login(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const username = text(formData, "username");
+  const password = typeof formData.get("password") === "string"
+    ? (formData.get("password") as string)
+    : "";
+  const next = text(formData, "next");
+
+  if (!username || !password)
+    return { ok: false, error: "Vul gebruikersnaam en wachtwoord in." };
+
+  if (!verifyCredentials(username, password))
+    return { ok: false, error: "Onjuiste gebruikersnaam of wachtwoord." };
+
+  await createSession();
+  redirect(next && next.startsWith("/") ? next : "/");
+}
+
+export async function logout(): Promise<void> {
+  await destroySession();
+  redirect("/");
 }
 
 export async function createGroupOrder(
@@ -95,6 +128,8 @@ export async function addOrderItem(
 }
 
 export async function deleteOrderItem(formData: FormData): Promise<void> {
+  if (!(await isAdmin())) redirect("/login");
+
   const id = text(formData, "id");
   const groupOrderId = text(formData, "groupOrderId");
   if (!id) return;
@@ -105,6 +140,8 @@ export async function deleteOrderItem(formData: FormData): Promise<void> {
 }
 
 export async function renameGroupOrder(formData: FormData): Promise<void> {
+  if (!(await isAdmin())) redirect("/login");
+
   const id = text(formData, "id");
   const name = text(formData, "name");
   if (!id || !name || name.length > 100) return;
@@ -118,7 +155,34 @@ export async function renameGroupOrder(formData: FormData): Promise<void> {
   revalidatePath("/");
 }
 
+export async function setDeadline(formData: FormData): Promise<void> {
+  if (!(await isAdmin())) redirect("/login");
+
+  const id = text(formData, "id");
+  if (!id) return;
+
+  // Leeg = deadline wissen. Anders een ISO-tijdstip (de client rekent de lokale
+  // datum/tijd om naar UTC vóór het versturen).
+  const raw = text(formData, "deadline");
+  let deadline: Date | null = null;
+  if (raw) {
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return;
+    deadline = parsed;
+  }
+
+  await getDb()
+    .update(groupOrders)
+    .set({ deadline })
+    .where(eq(groupOrders.id, id));
+
+  revalidatePath(`/bestelling/${id}`);
+  revalidatePath("/");
+}
+
 export async function setOrderStatus(formData: FormData): Promise<void> {
+  if (!(await isAdmin())) redirect("/login");
+
   const id = text(formData, "id");
   const status = text(formData, "status");
   if (!id || (status !== "open" && status !== "closed")) return;

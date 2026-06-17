@@ -6,7 +6,7 @@ export function StatusBadge({ status }: { status: string }) {
         open ? "bg-green-100 text-green-700" : "bg-slate-200 text-slate-600"
       }`}
     >
-      {open ? "Open" : "Gesloten"}
+      {open ? "Open" : "Vergrendeld"}
     </span>
   );
 }
