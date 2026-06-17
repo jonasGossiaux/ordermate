@@ -1,21 +1,39 @@
 // Wordt uitgevoerd vóór `next build`.
-// - Op Vercel (DATABASE_URL aanwezig): voert de Drizzle-migraties uit zodat de
-//   tabellen bestaan voor de eerste deploy.
-// - Lokaal zonder DATABASE_URL: slaat over, zodat `npm run build` blijft werken.
-import { execSync } from "node:child_process";
+// Voert de Drizzle-migraties uit via de Neon HTTP-driver. Dat werkt betrouwbaar
+// in de Vercel build-omgeving en met de (pooled) DATABASE_URL die de Neon-
+// integratie instelt — in tegenstelling tot `drizzle-kit migrate`, dat een
+// directe TCP-verbinding nodig heeft.
+//
+// Lokaal zonder DATABASE_URL: overslaan, zodat `npm run build` blijft werken.
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import { migrate } from "drizzle-orm/neon-http/migrator";
 
-if (!process.env.DATABASE_URL) {
+// Lokaal: lees DATABASE_URL uit .env.local (indien dotenv beschikbaar is).
+// Op Vercel staat DATABASE_URL al in process.env, dus dit is daar een no-op.
+try {
+  const { config } = await import("dotenv");
+  config({ path: ".env.local" });
+  config();
+} catch {
+  // dotenv niet beschikbaar (bv. productie zonder devDependencies) — prima.
+}
+
+const url = process.env.DATABASE_URL;
+
+if (!url) {
   console.log(
     "[db-migrate] Geen DATABASE_URL gevonden — migraties overgeslagen.",
   );
   process.exit(0);
 }
 
-console.log("[db-migrate] Migraties uitvoeren op de database...");
+console.log("[db-migrate] Migraties uitvoeren via Neon HTTP...");
 try {
-  execSync("drizzle-kit migrate", { stdio: "inherit" });
-  console.log("[db-migrate] Klaar.");
+  const db = drizzle(neon(url));
+  await migrate(db, { migrationsFolder: "./drizzle" });
+  console.log("[db-migrate] Klaar — database is up-to-date.");
 } catch (error) {
-  console.error("[db-migrate] Migratie mislukt.");
-  throw error;
+  console.error("[db-migrate] Migratie mislukt:", error);
+  process.exit(1);
 }
