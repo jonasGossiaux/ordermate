@@ -5,6 +5,7 @@ import { getGroupOrder } from "@/db/queries";
 import { getMenu } from "@/data/menus";
 import { setOrderStatus } from "@/app/actions";
 import { AddItemForm } from "@/components/AddItemForm";
+import { MenuReference } from "@/components/MenuReference";
 import { OrderItemsList } from "@/components/OrderItemsList";
 import { OrderSummary } from "@/components/OrderSummary";
 import { ShareLink } from "@/components/ShareLink";
@@ -58,6 +59,8 @@ export default async function OrderPage({
           toegevoegd.
         </div>
       )}
+
+      {menu ? <MenuReference menu={menu} /> : null}
 
       <section className={card}>
         <div className="mb-3 flex items-center justify-between gap-3">

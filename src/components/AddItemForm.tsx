@@ -1,14 +1,8 @@
 "use client";
 
-import {
-  useActionState,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useActionState, useState, useSyncExternalStore } from "react";
 import { addOrderItem, type FormState } from "@/app/actions";
-import type { MenuCategory } from "@/data/menus";
+import type { MenuCategory, MenuItem } from "@/data/menus";
 
 const NAME_KEY = "ordermate:name";
 const emptySubscribe = () => () => {};
@@ -29,6 +23,33 @@ export function AddItemForm({
     null,
   );
 
+  // Elke geslaagde toevoeging geeft een uniek itemId terug. Dat gebruiken we als
+  // remount-sleutel: zo komen het broodje en de opmerking leeg na het toevoegen,
+  // terwijl de naam bewaard blijft (die komt uit localStorage).
+  const resetKey = state?.ok && state.itemId ? state.itemId : "fields";
+
+  return (
+    <form action={action} className="space-y-4">
+      <input type="hidden" name="groupOrderId" value={groupOrderId} />
+      <Fields
+        key={resetKey}
+        categories={categories}
+        pending={pending}
+        error={state?.error}
+      />
+    </form>
+  );
+}
+
+function Fields({
+  categories,
+  pending,
+  error,
+}: {
+  categories: MenuCategory[];
+  pending: boolean;
+  error?: string;
+}) {
   // Onthouden naam (hydration-veilig): leeg op de server, opgeslagen waarde op de client.
   const storedName = useSyncExternalStore(
     emptySubscribe,
@@ -38,27 +59,11 @@ export function AddItemForm({
   const [typedName, setTypedName] = useState<string | null>(null);
   const name = typedName ?? storedName;
 
-  const formRef = useRef<HTMLFormElement>(null);
-
-  // Na een geslaagde toevoeging: opmerking en keuze leegmaken (naam blijft staan).
-  useEffect(() => {
-    if (state?.ok && formRef.current) {
-      const form = formRef.current;
-      const comment = form.elements.namedItem(
-        "comment",
-      ) as HTMLInputElement | null;
-      const select = form.elements.namedItem(
-        "menuItemId",
-      ) as HTMLSelectElement | null;
-      if (comment) comment.value = "";
-      if (select) select.selectedIndex = 0;
-    }
-  }, [state]);
+  const [menuItemId, setMenuItemId] = useState("");
+  const selected = findItem(categories, menuItemId);
 
   return (
-    <form ref={formRef} action={action} className="space-y-4">
-      <input type="hidden" name="groupOrderId" value={groupOrderId} />
-
+    <>
       <div>
         <label className={label} htmlFor="personName">
           Jouw naam
@@ -86,7 +91,8 @@ export function AddItemForm({
           id="menuItemId"
           name="menuItemId"
           required
-          defaultValue=""
+          value={menuItemId}
+          onChange={(e) => setMenuItemId(e.target.value)}
           className={input}
         >
           <option value="" disabled>
@@ -107,6 +113,21 @@ export function AddItemForm({
             </optgroup>
           ))}
         </select>
+
+        {selected?.description ? (
+          <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            {selected.description}
+            {selected.note ? (
+              <span className="mt-1 block text-xs text-slate-500">
+                {selected.note}
+              </span>
+            ) : null}
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-slate-400">
+            Kies een broodje om de ingrediënten te zien.
+          </p>
+        )}
       </div>
 
       <div>
@@ -122,9 +143,9 @@ export function AddItemForm({
         />
       </div>
 
-      {state?.error && (
+      {error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-          {state.error}
+          {error}
         </p>
       )}
 
@@ -135,6 +156,18 @@ export function AddItemForm({
       >
         {pending ? "Bezig met toevoegen..." : "+ Toevoegen aan bestelling"}
       </button>
-    </form>
+    </>
   );
+}
+
+function findItem(
+  categories: MenuCategory[],
+  id: string,
+): MenuItem | undefined {
+  if (!id) return undefined;
+  for (const category of categories) {
+    const item = category.items.find((entry) => entry.id === id);
+    if (item) return item;
+  }
+  return undefined;
 }

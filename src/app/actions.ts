@@ -14,7 +14,12 @@ const alphabet = "23456789abcdefghijkmnopqrstuvwxyz";
 const newOrderId = customAlphabet(alphabet, 8);
 const newItemId = customAlphabet(alphabet, 16);
 
-export type FormState = { ok: boolean; error?: string } | null;
+export type FormState = {
+  ok: boolean;
+  error?: string;
+  /** Id van het zojuist toegevoegde item; uniek per geslaagde toevoeging. */
+  itemId?: string;
+} | null;
 
 function text(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -75,8 +80,9 @@ export async function addOrderItem(
   if (menuItem.soldOut)
     return { ok: false, error: `${menuItem.name} is momenteel uitverkocht.` };
 
+  const itemId = newItemId();
   await db.insert(orderItems).values({
-    id: newItemId(),
+    id: itemId,
     groupOrderId,
     personName,
     menuItemId,
@@ -85,7 +91,7 @@ export async function addOrderItem(
   });
 
   revalidatePath(`/bestelling/${groupOrderId}`);
-  return { ok: true };
+  return { ok: true, itemId };
 }
 
 export async function deleteOrderItem(formData: FormData): Promise<void> {
