@@ -14,6 +14,7 @@ import {
   isAdmin,
   verifyCredentials,
 } from "@/lib/auth";
+import { ensureOwnerToken, getOwnerToken } from "@/lib/owner";
 
 // Leesbare ids zonder dubbelzinnige tekens (geen 0/o/1/l).
 const alphabet = "23456789abcdefghijkmnopqrstuvwxyz";
@@ -114,6 +115,7 @@ export async function addOrderItem(
     return { ok: false, error: `${menuItem.name} is momenteel uitverkocht.` };
 
   const itemId = newItemId();
+  const ownerToken = await ensureOwnerToken();
   await db.insert(orderItems).values({
     id: itemId,
     groupOrderId,
@@ -121,6 +123,7 @@ export async function addOrderItem(
     menuItemId,
     itemName: menuItem.name,
     comment: comment || null,
+    ownerToken,
   });
 
   revalidatePath(`/bestelling/${groupOrderId}`);
@@ -128,15 +131,35 @@ export async function addOrderItem(
 }
 
 export async function deleteOrderItem(formData: FormData): Promise<void> {
-  if (!(await isAdmin())) redirect("/login");
-
   const id = text(formData, "id");
-  const groupOrderId = text(formData, "groupOrderId");
   if (!id) return;
 
-  await getDb().delete(orderItems).where(eq(orderItems.id, id));
+  const db = getDb();
+  const found = await db
+    .select()
+    .from(orderItems)
+    .where(eq(orderItems.id, id))
+    .limit(1);
+  const item = found[0];
+  if (!item) return;
 
-  if (groupOrderId) revalidatePath(`/bestelling/${groupOrderId}`);
+  // De beheerder mag alles verwijderen. Een gewone bezoeker enkel zijn eigen
+  // broodje (cookie-token komt overeen) én zolang de bestelling nog open is.
+  if (!(await isAdmin())) {
+    const token = await getOwnerToken();
+    const owns = !!token && !!item.ownerToken && token === item.ownerToken;
+    if (!owns) return;
+
+    const ord = await db
+      .select({ status: groupOrders.status })
+      .from(groupOrders)
+      .where(eq(groupOrders.id, item.groupOrderId))
+      .limit(1);
+    if (ord[0]?.status !== "open") return;
+  }
+
+  await db.delete(orderItems).where(eq(orderItems.id, id));
+  revalidatePath(`/bestelling/${item.groupOrderId}`);
 }
 
 export async function renameGroupOrder(formData: FormData): Promise<void> {

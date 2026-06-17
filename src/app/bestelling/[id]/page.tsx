@@ -5,6 +5,7 @@ import { getGroupOrder } from "@/db/queries";
 import { getMenu } from "@/data/menus";
 import { renameGroupOrder, setOrderStatus } from "@/app/actions";
 import { isAdmin } from "@/lib/auth";
+import { getOwnerToken } from "@/lib/owner";
 import { AddItemForm } from "@/components/AddItemForm";
 import { Deadline } from "@/components/Deadline";
 import { DeadlineEditor } from "@/components/DeadlineEditor";
@@ -24,7 +25,11 @@ export default async function OrderPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [data, admin] = await Promise.all([getGroupOrder(id), isAdmin()]);
+  const [data, admin, visitorToken] = await Promise.all([
+    getGroupOrder(id),
+    isAdmin(),
+    getOwnerToken(),
+  ]);
   if (!data) notFound();
 
   const { order, items } = data;
@@ -145,9 +150,10 @@ export default async function OrderPage({
           <RefreshButton />
         </div>
         <OrderItemsList
-          groupOrderId={order.id}
           items={items}
-          canEdit={admin}
+          admin={admin}
+          visitorToken={visitorToken}
+          locked={!canAdd}
         />
       </section>
 

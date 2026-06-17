@@ -15,6 +15,13 @@
       "when": 1781689481555,
       "tag": "0001_workable_satana",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781694475782,
+      "tag": "0002_tiny_joshua_kane",
+      "breakpoints": true
     }
   ]
 }

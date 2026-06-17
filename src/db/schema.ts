@@ -29,6 +29,9 @@ export const orderItems = pgTable("order_items", {
   // ook al wijzigt het menu in code.
   itemName: text("item_name").notNull(),
   comment: text("comment"),
+  // Anonieme eigenaar (uit het "om_uid"-cookie): wie dit broodje toevoegde,
+  // mag het ook zelf verwijderen. Nooit naar de client gestuurd.
+  ownerToken: text("owner_token"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
