@@ -104,6 +104,20 @@ export async function deleteOrderItem(formData: FormData): Promise<void> {
   if (groupOrderId) revalidatePath(`/bestelling/${groupOrderId}`);
 }
 
+export async function renameGroupOrder(formData: FormData): Promise<void> {
+  const id = text(formData, "id");
+  const name = text(formData, "name");
+  if (!id || !name || name.length > 100) return;
+
+  await getDb()
+    .update(groupOrders)
+    .set({ name })
+    .where(eq(groupOrders.id, id));
+
+  revalidatePath(`/bestelling/${id}`);
+  revalidatePath("/");
+}
+
 export async function setOrderStatus(formData: FormData): Promise<void> {
   const id = text(formData, "id");
   const status = text(formData, "status");

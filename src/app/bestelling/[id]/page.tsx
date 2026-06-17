@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { getGroupOrder } from "@/db/queries";
 import { getMenu } from "@/data/menus";
-import { setOrderStatus } from "@/app/actions";
+import { renameGroupOrder, setOrderStatus } from "@/app/actions";
 import { AddItemForm } from "@/components/AddItemForm";
 import { MenuReference } from "@/components/MenuReference";
 import { OrderItemsList } from "@/components/OrderItemsList";
@@ -40,6 +40,31 @@ export default async function OrderPage({
           <p className="mt-0.5 text-sm text-slate-500">
             {menu?.name ?? order.menuId} · {formatDateNL(order.createdAt)}
           </p>
+          <details className="group mt-1.5">
+            <summary className="inline-flex cursor-pointer list-none text-sm text-slate-500 hover:text-navy [&::-webkit-details-marker]:hidden">
+              <span className="group-open:hidden">✎ Naam bewerken</span>
+              <span className="hidden group-open:inline">Annuleren</span>
+            </summary>
+            <form
+              action={renameGroupOrder}
+              className="mt-2 flex flex-wrap items-center gap-2"
+            >
+              <input type="hidden" name="id" value={order.id} />
+              <input
+                name="name"
+                required
+                maxLength={100}
+                defaultValue={order.name}
+                className="min-w-0 flex-1 rounded-lg border border-line bg-white px-3 py-2 text-[15px] outline-none focus:border-navy focus:ring-2 focus:ring-navy/15"
+              />
+              <button
+                type="submit"
+                className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-soft"
+              >
+                Opslaan
+              </button>
+            </form>
+          </details>
         </div>
         <StatusBadge status={order.status} />
       </div>
