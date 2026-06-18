@@ -4,7 +4,6 @@ import { getRecentGroupOrders } from "@/db/queries";
 import { getMenu } from "@/data/menus";
 import { Deadline } from "@/components/Deadline";
 import { StatusBadge } from "@/components/StatusBadge";
-import { formatDateNL } from "@/lib/format";
 
 export default async function HomePage() {
   const orders = await getRecentGroupOrders();
@@ -52,9 +51,6 @@ export default async function HomePage() {
                         {menu?.name ?? order.menuId} ·{" "}
                         {order.itemCount}{" "}
                         {order.itemCount === 1 ? "broodje" : "broodjes"}
-                      </div>
-                      <div className="mt-1 text-xs text-slate-400">
-                        {formatDateNL(order.createdAt)}
                       </div>
                       {order.deadline ? (
                         <div className="mt-1 text-xs">

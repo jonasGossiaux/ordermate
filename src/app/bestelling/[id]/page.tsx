@@ -15,7 +15,6 @@ import { OrderSummary } from "@/components/OrderSummary";
 import { ShareLink } from "@/components/ShareLink";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RefreshButton } from "@/components/RefreshButton";
-import { formatDateNL } from "@/lib/format";
 
 const card = "rounded-2xl border border-line bg-white p-5 shadow-sm";
 
@@ -47,7 +46,7 @@ export default async function OrderPage({
         <div className="min-w-0">
           <h1 className="text-2xl font-bold text-navy">{order.name}</h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            {menu?.name ?? order.menuId} · {formatDateNL(order.createdAt)}
+            {menu?.name ?? order.menuId}
           </p>
           {admin ? (
             <details className="group mt-1.5">
